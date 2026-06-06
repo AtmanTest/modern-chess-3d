@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node server/socket/server.js",
+    "start": "tsx server/socket/server.ts",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -16,13 +16,16 @@
     "@react-three/fiber": "^8.18.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.107.0",
+    "@types/cors": "^2.8.19",
     "chess.js": "^1.4.0",
+    "nanoid": "^5.1.11",
     "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "three": "^0.184.0",
+    "tsx": "^4.22.4",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

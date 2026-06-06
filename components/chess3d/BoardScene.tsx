@@ -28,6 +28,7 @@ export default function BoardScene({
   lastMove,
   checkSquare,
   flipped = false,
+  onSquareClick,
 }: BoardSceneProps) {
   return (
     <div className="w-full h-full">
@@ -48,6 +49,7 @@ export default function BoardScene({
             selectedSquare={selectedSquare}
             legalMoves={legalMoves}
             lastMove={lastMove}
+            onSquareClick={onSquareClick}
           />
           <PiecesLayer
             fen={fen}

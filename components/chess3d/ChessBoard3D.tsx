@@ -1,20 +1,20 @@
 'use client';
 
-import { useMemo } from 'react';
-
+import { useMemo, useCallback } from 'react';
 
 interface ChessBoard3DProps {
   selectedSquare?: string | null;
   legalMoves?: string[];
   lastMove?: { from: string; to: string } | null;
+  onSquareClick?: (square: string) => void;
 }
 
 export default function ChessBoard3D({
   selectedSquare,
   legalMoves = [],
   lastMove,
+  onSquareClick,
 }: ChessBoard3DProps) {
-
   const squares = useMemo(() => {
     const result: {
       pos: [number, number];
@@ -46,7 +46,7 @@ export default function ChessBoard3D({
   return (
     <group>
       {squares.map((sq) => (
-        <Square3D key={sq.name} {...sq} />
+        <Square3D key={sq.name} {...sq} onSquareClick={onSquareClick} />
       ))}
     </group>
   );
@@ -58,12 +58,14 @@ function Square3D({
   isSelected,
   isLegal,
   isLastMove,
+  onSquareClick,
 }: {
   pos: [number, number];
   name: string;
   isSelected: boolean;
   isLegal: boolean;
   isLastMove: boolean;
+  onSquareClick?: (square: string) => void;
 }) {
   const colors = useMemo(() => {
     const lightColor = '#e8d5a3';
@@ -77,8 +79,16 @@ function Square3D({
     return base;
   }, [name, isSelected, isLegal, isLastMove]);
 
+  const handleClick = useCallback(() => {
+    onSquareClick?.(name);
+  }, [name, onSquareClick]);
+
   return (
-    <mesh position={[pos[0], -0.05, pos[1]]} receiveShadow>
+    <mesh
+      position={[pos[0], -0.05, pos[1]]}
+      receiveShadow
+      onClick={handleClick}
+    >
       <boxGeometry args={[0.98, 0.08, 0.98]} />
       <meshStandardMaterial color={colors} roughness={0.7} metalness={0.2} />
     </mesh>
