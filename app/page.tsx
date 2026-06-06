@@ -1,101 +1,120 @@
-import Image from "next/image";
+import Link from 'next/link';
 
-export default function Home() {
+const features = [
+  {
+    icon: '🎮',
+    title: 'Plateau 3D Interactif',
+    desc: 'Rendu PBR avec Three.js et React Three Fiber. Caméra orbitale, animations fluides, éclairage dynamique, thème sombre premium.',
+  },
+  {
+    icon: '🤖',
+    title: 'IA Stockfish 18',
+    desc: 'Moteur Stockfish 18 avec NNUE compilé en WebAssembly. 10 niveaux de difficulté du débutant au grand maître.',
+  },
+  {
+    icon: '🌐',
+    title: 'Multijoueur Temps Réel',
+    desc: 'Parties en ligne via Socket.IO. Rooms privées avec lien de partage. Validation des coups côté serveur anti-triche.',
+  },
+  {
+    icon: '👤',
+    title: 'Comptes & Profils',
+    desc: 'Inscription email ou OAuth (GitHub/Google). Profil avec statistiques, historique des parties, graphique Elo.',
+  },
+  {
+    icon: '🏆',
+    title: 'Classement Elo',
+    desc: 'Système de cote Elo standard (K=32). Classement global, progression dans le temps, analyse de vos parties.',
+  },
+  {
+    icon: '⚡',
+    title: 'Performant & Scalable',
+    desc: 'Next.js 14, CI/CD GitHub vers Render, cron jobs de maintenance, architecture prévue pour la montée en charge.',
+  },
+];
+
+export default function HomePage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="min-h-screen chess-gradient">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">♟️</span>
+          <span className="font-bold text-lg tracking-tight">
+            Modern<span className="text-amber-400">Chess</span>3D
+          </span>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+        <nav className="flex items-center gap-4">
+          <Link
+            href="/login"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            Connexion
+          </Link>
+          <Link
+            href="/register"
+            className="text-sm px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20
+                       text-amber-400 rounded-lg border border-amber-500/20
+                       transition-all duration-200"
+          >
+            S&apos;inscrire
+          </Link>
+        </nav>
+      </header>
+
+      <section className="flex flex-col items-center justify-center text-center px-6 pt-24 pb-16">
+        <div className="text-7xl mb-6 animate-pulse">♟️</div>
+        <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-4">
+          Échecs en{' '}
+          <span className="bg-gradient-to-r from-amber-300 to-orange-400 bg-clip-text text-transparent">
+            3D
+          </span>
+        </h1>
+        <p className="text-lg md:text-xl text-gray-400 max-w-xl mb-10">
+          Un plateau d&apos;échecs 3D premium avec IA Stockfish,
+          multijoueur temps réel, classement Elo, et rendu PBR.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Link
+            href="/vs-ai"
+            className="px-8 py-4 bg-amber-500 hover:bg-amber-400 text-black
+                       font-semibold rounded-xl transition-all duration-200
+                       shadow-lg shadow-amber-500/25 hover:shadow-amber-400/40
+                       text-lg"
+          >
+            🤖 Jouer contre l&apos;IA
+          </Link>
+          <Link
+            href="/play"
+            className="px-8 py-4 bg-white/5 hover:bg-white/10
+                       border border-white/10 rounded-xl
+                       transition-all duration-200 text-lg
+                       backdrop-blur-sm"
+          >
+            🌐 Multijoueur
+          </Link>
+        </div>
+      </section>
+
+      <section className="max-w-5xl mx-auto px-6 pb-24 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {features.map((f, i) => (
+          <div
+            key={i}
+            className="glass-panel p-8 hover:border-amber-500/20 transition-colors"
+          >
+            <div className="text-3xl mb-4">{f.icon}</div>
+            <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              {f.desc}
+            </p>
+          </div>
+        ))}
+      </section>
+
+      <footer className="border-t border-white/5 py-8 text-center text-sm text-gray-600">
+        <p>
+          Modern Chess 3D &mdash; Open Source &middot; MIT License
+        </p>
       </footer>
-    </div>
+    </main>
   );
 }

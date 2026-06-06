@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ♟️ Modern Chess 3D
 
-## Getting Started
+[![CI](https://github.com/AtmanTest/modern-chess-3d/actions/workflows/ci.yml/badge.svg)](https://github.com/AtmanTest/modern-chess-3d/actions/workflows/ci.yml)
+[![Deploy](https://github.com/AtmanTest/modern-chess-3d/actions/workflows/deploy.yml/badge.svg)](https://github.com/AtmanTest/modern-chess-3d/actions/workflows/deploy.yml)
 
-First, run the development server:
+Un jeu d'échecs 3D moderne, premium et production-ready.
+
+## ✨ Fonctionnalités
+
+- **🎮 Plateau 3D interactif** — React Three Fiber + Three.js, caméra orbitale, animations fluides, éclairage PBR
+- **🤖 IA Stockfish 18** — NNUE, 10 niveaux de difficulté (depth 1→20) via WebAssembly
+- **🌐 Multijoueur temps réel** — Socket.IO, rooms privées avec lien de partage, validation serveur
+- **👤 Comptes utilisateurs** — Supabase Auth (email + OAuth GitHub/Google), profils, historique, classement Elo
+- **📊 Classement Elo** — Algorithme standard (K=32), classement global
+- **🎨 Thème sombre premium** — Plateau bois sombre / marbre noir + or, animations 3D
+
+## 🏗️ Stack Technique
+
+| Frontend | Backend | Infrastructure |
+|----------|---------|---------------|
+| Next.js 14 (App Router) | Node.js 20 | GitHub Actions |
+| React 18 + TypeScript | Socket.IO 4.x | Render Web Service |
+| React Three Fiber v8 | Supabase JS v2 | Render Cron Jobs |
+| Three.js 0.184 | chess.js v1.x | Supabase Cloud |
+| Zustand (state) | - | - |
+| Tailwind CSS + shadcn/ui | - | - |
+
+## 🚀 Démarrage Rapide
 
 ```bash
+# 1. Cloner
+git clone https://github.com/AtmanTest/modern-chess-3d.git
+cd modern-chess-3d
+
+# 2. Installer les dépendances
+npm install
+
+# 3. Copier et remplir les variables d'environnement
+cp .env.example .env.local
+
+# 4. Lancer le serveur de développement
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# 5. Dans un autre terminal, lancer le serveur Socket.IO
+npx tsx server/socket/server.ts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Structure du Projet
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+modern-chess-3d/
+├── app/                  # Next.js App Router pages
+├── components/
+│   ├── chess3d/         # Plateau 3D + pièces R3F
+│   ├── hud/             # Timer, historique, statut
+│   └── ui/              # shadcn/ui composants
+├── lib/
+│   ├── chess/           # Moteur de règles (chess.js)
+│   ├── ai/              # Stockfish WASM wrapper
+│   ├── realtime/        # Socket.IO client
+│   └── supabase/        # Client DB + auth
+├── server/socket/       # Serveur Socket.IO custom
+├── docs/                # Documentation technique
+├── tests/               # Tests unitaires + e2e
+└── .github/workflows/   # CI/CD
+```
 
-## Learn More
+## 🧪 Tests
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# Tests unitaires
+npm test
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Tests e2e (Playwright)
+npx playwright test
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📖 Documentation
 
-## Deploy on Vercel
+- [Architecture](docs/architecture.md)
+- [API Temps Réel](docs/api-realtime.md)
+- [Schéma Supabase](docs/supabase-schema.md)
+- [Déploiement](docs/deployment.md)
+- [Cron Jobs](docs/cron-jobs.md)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📄 Licence
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
