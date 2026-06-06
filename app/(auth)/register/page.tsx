@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   const supabase = createClient();
 
@@ -21,32 +22,45 @@ export default function RegisterPage() {
       setLoading(true);
       setError(null);
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { username },
-        },
-      });
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, username }),
+        });
 
-      if (authError) {
-        setError(authError.message);
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || 'Registration failed');
+          setLoading(false);
+          return;
+        }
+
+        if (data.requireLogin) {
+          // User created but couldn't auto-sign-in
+          router.push('/login?registered=true');
+          router.refresh();
+          return;
+        }
+
+        // Set the session from server response
+        if (data.session) {
+          await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          });
+        }
+
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/');
+          router.refresh();
+        }, 1000);
+      } catch {
+        setError('Network error. Please try again.');
         setLoading(false);
-        return;
       }
-
-      if (authData.user) {
-        // Create profile
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await supabase.from('profiles').insert({
-          id: authData.user.id,
-          username,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any);
-      }
-
-      router.push('/login?registered=true');
-      router.refresh();
     },
     [email, password, username, supabase, router],
   );
@@ -61,53 +75,61 @@ export default function RegisterPage() {
           <p className="text-gray-500 text-sm mt-2">Créez votre compte</p>
         </div>
 
-        <form onSubmit={handleRegister} className="space-y-4">
-          <input
-            type="text"
-            placeholder="Nom d&apos;utilisateur"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            minLength={3}
-            className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg
-                       text-white text-sm placeholder-gray-500
-                       focus:outline-none focus:border-amber-500/50 transition-colors"
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg
-                       text-white text-sm placeholder-gray-500
-                       focus:outline-none focus:border-amber-500/50 transition-colors"
-          />
-          <input
-            type="password"
-            placeholder="Mot de passe (min. 6 caractères)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg
-                       text-white text-sm placeholder-gray-500
-                       focus:outline-none focus:border-amber-500/50 transition-colors"
-          />
+        {success ? (
+          <div className="text-center py-8">
+            <div className="text-4xl mb-4">✅</div>
+            <p className="text-green-400 font-semibold">Compte créé !</p>
+            <p className="text-gray-500 text-sm mt-1">Redirection...</p>
+          </div>
+        ) : (
+          <form onSubmit={handleRegister} className="space-y-4">
+            <input
+              type="text"
+              placeholder="Nom d'utilisateur"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              minLength={3}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg
+                         text-white text-sm placeholder-gray-500
+                         focus:outline-none focus:border-amber-500/50 transition-colors"
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg
+                         text-white text-sm placeholder-gray-500
+                         focus:outline-none focus:border-amber-500/50 transition-colors"
+            />
+            <input
+              type="password"
+              placeholder="Mot de passe (min. 6 caractères)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg
+                         text-white text-sm placeholder-gray-500
+                         focus:outline-none focus:border-amber-500/50 transition-colors"
+            />
 
-          {error && (
-            <p className="text-red-400 text-xs">{error}</p>
-          )}
+            {error && (
+              <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50
-                       text-black font-semibold rounded-lg transition-all text-sm"
-          >
-            {loading ? 'Inscription...' : 'Créer mon compte'}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 disabled:bg-amber-500/50
+                         text-black font-semibold rounded-lg transition-all text-sm"
+            >
+              {loading ? 'Inscription...' : 'Créer mon compte'}
+            </button>
+          </form>
+        )}
 
         <p className="text-center text-xs text-gray-500 mt-6">
           Déjà un compte ?{' '}
