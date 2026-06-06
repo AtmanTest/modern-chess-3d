@@ -31,6 +31,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# stockfish wasm (downloaded via npm, served from node_modules)
-/public/stockfish/

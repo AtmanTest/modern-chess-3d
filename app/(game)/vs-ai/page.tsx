@@ -4,7 +4,8 @@ import { useCallback, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Chess } from 'chess.js';
 import { useGameStore } from '@/lib/store/gameStore';
-import { getBestMove } from '@/lib/ai/stockfish';
+import { getBestMove, initStockfish, isStockfishReady } from '@/lib/ai/stockfish';
+import { getFallbackMove } from '@/lib/ai/fallback';
 import type { GameStatus, Color, Square } from '@/lib/chess/types';
 
 const BoardScene = dynamic(
@@ -77,12 +78,49 @@ export default function VsAIPage() {
     setTurn(chess.turn() === 'w' ? 'w' : 'b');
   }, [chess, playerColor, setGameOver, setStatus, setTurn]);
 
+  // Warm up Stockfish (async, non-blocking — runs immediately in module scope)
+  initStockfish().catch(() => {});
+
   const doAIMove = useCallback(async () => {
     if (chess.isGameOver()) return;
     setAIThinking(true);
+    let usedFallback = false;
     try {
-      const aiMoveUci = await getBestMove(chess.fen(), aiLevel);
-      if (aiMoveUci && aiMoveUci.length >= 4) {
+      let aiMoveUci: string | null = null;
+
+      // Try Stockfish first
+      if (isStockfishReady()) {
+        try {
+          aiMoveUci = await getBestMove(chess.fen(), aiLevel);
+        } catch {
+          // Stockfish failed — fall through to minimax
+          aiMoveUci = null;
+        }
+      }
+
+      // Fallback to minimax engine if Stockfish unavailable
+      if (!aiMoveUci) {
+        const depth = aiLevel <= 3 ? 2 : aiLevel <= 6 ? 3 : 4;
+        const fallbackSan = getFallbackMove(chess.fen(), depth);
+        usedFallback = true;
+        if (fallbackSan) {
+          chess.move(fallbackSan);
+          const lastMoveHistory = chess.history();
+          const lastMoveStr = lastMoveHistory[lastMoveHistory.length - 1] || '';
+          const fromTo = lastMoveStr.match(/^([a-h][1-8])-?/)?.[1] || '';
+          const toMatch = lastMoveStr.match(/[a-h][1-8]$/)?.[0] || '';
+          setLastMove({ from: fromTo || 'e2', to: toMatch || 'e3' });
+          addMove(fallbackSan);
+          afterMove();
+          setAIThinking(false);
+          if (usedFallback) setError(null);
+          return;
+        } else {
+          throw new Error('No valid fallback move');
+        }
+      }
+
+      if (aiMoveUci.length >= 4) {
         const fromUci = aiMoveUci.slice(0, 2);
         const toUci = aiMoveUci.slice(2, 4);
         const promoUci = aiMoveUci.length > 4 ? aiMoveUci[4] : undefined;
@@ -95,9 +133,11 @@ export default function VsAIPage() {
         const aiSan = chess.history().pop() || '';
         addMove(aiSan);
         afterMove();
+        if (usedFallback) setError(null);
       }
     } catch (eUnknown) {
-      setError('AI error: ' + (eUnknown instanceof Error ? eUnknown.message : String(eUnknown)));
+      const errMsg = eUnknown instanceof Error ? eUnknown.message : String(eUnknown);
+      setError(errMsg);
     } finally {
       setAIThinking(false);
     }

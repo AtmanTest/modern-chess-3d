@@ -1,121 +1,129 @@
 // ─── Wrapper Stockfish WASM (Promise-based) ───
-// Utilise le binaire lite-single-threaded de stockfish (nmrugg)
-// ~7.3 MB, NNUE, pas de SharedArrayBuffer nécessaire
+// Utilise stockfish-18-lite-single.js (nmrugg) depuis public/stockfish/
+// ~7 MB, NNUE, mono-thread, pas de SharedArrayBuffer nécessaire
 
 import { getUCIDepth, getSkillLevel } from './levels';
 
 let worker: Worker | null = null;
 let isReady = false;
-let readyResolve: (() => void) | null = null;
+let initPromise: Promise<void> | null = null;
 
-// Attendre que Stockfish soit prêt (UCI handshake)
-function waitForReady(): Promise<void> {
-  return new Promise((resolve) => {
-    if (isReady) {
-      resolve();
-    } else {
-      readyResolve = resolve;
-    }
-  });
-}
-
-// Initialiser le worker Stockfish
+// Initialiser le worker Stockfish (appelé automatiquement par getBestMove)
 export async function initStockfish(): Promise<void> {
-  if (worker) return waitForReady();
+  if (worker && isReady) return;
+  if (initPromise) return initPromise;
 
-  return new Promise((resolve, reject) => {
+  initPromise = new Promise((resolve, reject) => {
     try {
-      // Copier les fichiers WASM dans /stockfish/ pour le serveur
-      // Note: les fichiers doivent être placés dans public/stockfish/
-      // via un script postinstall ou copie manuelle
       const stockfishPath = '/stockfish/stockfish-18-lite-single.js';
 
       worker = new Worker(stockfishPath);
+
+      const timeout = setTimeout(() => {
+        reject(new Error('Stockfish worker failed to respond (timeout)'));
+      }, 15000);
 
       worker.onmessage = (e: MessageEvent) => {
         const msg = e.data as string;
 
         if (msg === 'readyok') {
+          clearTimeout(timeout);
           isReady = true;
-          if (readyResolve) {
-            readyResolve();
-            readyResolve = null;
-          }
           resolve();
-        } else if (msg.startsWith('bestmove')) {
-          // Will be handled by the calling function
+        } else if (msg.startsWith('id name')) {
+          // Stockfish identification, ignore
         }
       };
 
       worker.onerror = (err) => {
+        clearTimeout(timeout);
         console.error('Stockfish worker error:', err);
-        reject(new Error('Failed to initialize Stockfish worker'));
+        // Clean up on error
+        if (worker) {
+          worker.terminate();
+          worker = null;
+        }
+        initPromise = null;
+        reject(new Error('Failed to initialize Stockfish worker: ' + (err.message || 'unknown error')));
       };
 
-      // Initialize UCI protocol
       worker.postMessage('uci');
       worker.postMessage('isready');
     } catch (err) {
-      reject(err);
+      initPromise = null;
+      reject(err instanceof Error ? err : new Error(String(err)));
     }
   });
+
+  return initPromise;
 }
 
 // Obtenir le meilleur coup pour une position FEN
-export function getBestMove(
+export async function getBestMove(
   fen: string,
   level: number = 5,
-  timeMs: number = 2000
+  timeMs: number = 3000
 ): Promise<string> {
-  return new Promise(async (resolve, reject) => {
-    try {
-      await waitForReady();
+  try {
+    // Ensure Stockfish is initialized
+    await initStockfish();
+  } catch (initErr) {
+    // If Stockfish fails to init, throw to let caller fall back
+    throw new Error('Stockfish init failed: ' + (initErr instanceof Error ? initErr.message : String(initErr)));
+  }
 
-      if (!worker) {
-        reject(new Error('Stockfish not initialized'));
-        return;
+  return new Promise<string>((resolve, reject) => {
+    if (!worker || !isReady) {
+      reject(new Error('Stockfish not ready'));
+      return;
+    }
+
+    const depth = getUCIDepth(level);
+    const skill = getSkillLevel(level);
+
+    let result: string | null = null;
+    let bestmoveReceived = false;
+
+    const timeout = setTimeout(() => {
+      if (!bestmoveReceived) {
+        worker!.postMessage('stop');
+        reject(new Error(`Stockfish timeout (level ${level}, depth ${depth}, ${timeMs}ms)`));
       }
+    }, Math.min(timeMs + 1000, 6000));
 
-      const depth = getUCIDepth(level);
-      const skill = getSkillLevel(level);
+    const handler = (e: MessageEvent) => {
+      const msg = e.data as string;
 
-      let result: string | null = null;
-
-      // Timeout de sécurité
-      const timeout = setTimeout(() => {
-        if (!result) {
-          worker!.postMessage('stop');
-          reject(new Error('Stockfish timeout'));
+      if (msg.startsWith('bestmove')) {
+        const parts = msg.split(' ');
+        if (parts.length >= 2 && parts[1] !== '(none)') {
+          result = parts[1];
+          bestmoveReceived = true;
+          clearTimeout(timeout);
+          worker!.removeEventListener('message', handler);
+          resolve(result);
+        } else if (parts.length >= 2 && parts[1] === '(none)') {
+          bestmoveReceived = true;
+          clearTimeout(timeout);
+          worker!.removeEventListener('message', handler);
+          reject(new Error('No valid move found by Stockfish'));
         }
-      }, Math.min(timeMs + 1000, 6000));
+      } else if (msg.startsWith('info')) {
+        // Stockfish is thinking — we can ignore these or log them
+        // Could extract "info depth X" for progress feedback
+      }
+    };
 
-      // Gérer la réponse
-      const handler = (e: MessageEvent) => {
-        const msg = e.data as string;
+    worker.addEventListener('message', handler);
 
-        if (msg.startsWith('bestmove')) {
-          const parts = msg.split(' ');
-          if (parts.length >= 2 && parts[1] !== '(none)') {
-            result = parts[1];
-            clearTimeout(timeout);
-            worker!.removeEventListener('message', handler);
-            resolve(result);
-          } else {
-            clearTimeout(timeout);
-            worker!.removeEventListener('message', handler);
-            reject(new Error('No valid move found'));
-          }
-        }
-      };
-
-      worker.addEventListener('message', handler);
-
-      // Configurer le niveau
+    try {
       worker.postMessage(`setoption name Skill Level value ${skill}`);
       worker.postMessage(`position fen ${fen}`);
       worker.postMessage(`go depth ${depth}`);
-    } catch (err) {
-      reject(err);
+    } catch (postErr) {
+      clearTimeout(timeout);
+      worker.removeEventListener('message', handler);
+      reject(new Error('Failed to send command to Stockfish: ' + String(postErr)));
     }
   });
 }
@@ -132,8 +140,9 @@ export function destroyStockfish(): void {
   if (worker) {
     worker.terminate();
     worker = null;
-    isReady = false;
   }
+  isReady = false;
+  initPromise = null;
 }
 
 // Vérifier si Stockfish est chargé

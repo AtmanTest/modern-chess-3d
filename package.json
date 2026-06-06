@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "server": "tsx server/socket/server.ts"
+    "server": "tsx server/socket/server.ts",
+    "postinstall": "mkdir -p public/stockfish && cp -n node_modules/stockfish/bin/stockfish-18-lite-single.* public/stockfish/ 2>/dev/null || true"
   },
   "dependencies": {
     "@react-three/drei": "^9.122.0",
@@ -24,6 +25,7 @@
     "react-dom": "^18",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
+    "stockfish": "^18.0.7",
     "three": "^0.184.0",
     "tsx": "^4.22.4",
     "zustand": "^5.0.14"
