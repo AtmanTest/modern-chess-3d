@@ -1,9 +1,7 @@
 // ─── Moteur minimax simple (fallback si Stockfish WASM indisponible) ───
-// Implémente un minimax avec alpha-beta pruning pour les positions simples.
-// Suffisant pour les niveaux 1-4.
+// Retourne des coups en format UCI (ex: "e2e4", "g1f3") pour compatibilité
 
 import { Chess } from 'chess.js';
-
 
 // Valeurs des pièces (centipawns)
 const PIECE_VALUES: Record<string, number> = {
@@ -15,7 +13,7 @@ const PIECE_VALUES: Record<string, number> = {
   k: 20000,
 };
 
-// Tables de position pour les pions (augmenter la valeur des pions centraux)
+// Tables de position pour les pions
 const PAWN_TABLE = [
   [0,  0,  0,  0,  0,  0,  0,  0],
   [50, 50, 50, 50, 50, 50, 50, 50],
@@ -30,24 +28,20 @@ const PAWN_TABLE = [
 function evaluateBoard(chess: Chess): number {
   let score = 0;
   const board = chess.board();
-
   for (let rank = 0; rank < 8; rank++) {
     for (let file = 0; file < 8; file++) {
       const piece = board[rank][file];
       if (!piece) continue;
-
       const value = PIECE_VALUES[piece.type] || 0;
-      const posBonus = piece.type === 'p' ? PAWN_TABLE[rank][file] : 0;
+      const idx = piece.color === 'w' ? rank : 7 - rank;
+      const posBonus = piece.type === 'p' ? PAWN_TABLE[idx][file] : 0;
       const sign = piece.color === 'w' ? 1 : -1;
-
       score += sign * (value + posBonus);
     }
   }
-
   // Bonus pour la mobilité
   const moves = chess.moves().length;
   score += moves * 2;
-
   return score;
 }
 
@@ -59,16 +53,13 @@ function minimax(
   isMaximizing: boolean
 ): number {
   if (depth === 0 || chess.isGameOver()) {
-    if (chess.isCheckmate()) {
-      return isMaximizing ? -100000 + depth : 100000 - depth;
-    }
+    if (chess.isCheckmate()) return isMaximizing ? -100000 + depth : 100000 - depth;
     if (chess.isDraw() || chess.isStalemate()) return 0;
     return evaluateBoard(chess);
   }
 
   const moves = chess.moves({ verbose: true });
-
-  // Optimisation: trier les coups par valeur de capture
+  // Trier par valeur de capture pour meilleur pruning
   moves.sort((a, b) => {
     const aVal = a.captured ? PIECE_VALUES[a.captured] || 0 : 0;
     const bVal = b.captured ? PIECE_VALUES[b.captured] || 0 : 0;
@@ -78,7 +69,6 @@ function minimax(
   if (isMaximizing) {
     let maxEval = -Infinity;
     for (const move of moves) {
-      // Conserver des infos de profondeur avec le temps
       const newChess = new Chess(chess.fen());
       newChess.move({ from: move.from, to: move.to, promotion: move.promotion });
       const evalScore = minimax(newChess, depth - 1, alpha, beta, false);
@@ -101,7 +91,11 @@ function minimax(
   }
 }
 
-export function getFallbackMove(fen: string, depth: number = 3): string | null {
+/**
+ * Retourne le meilleur coup en format UCI (ex: "e2e4", "g1f3")
+ * Utilisé comme fallback quand Stockfish WASM n'est pas disponible.
+ */
+export function getFallbackMoveUCI(fen: string, depth: number = 3): string | null {
   try {
     const chess = new Chess(fen);
     const moves = chess.moves({ verbose: true });
@@ -117,7 +111,8 @@ export function getFallbackMove(fen: string, depth: number = 3): string | null {
 
       if (score > bestScore) {
         bestScore = score;
-        bestMove = move.san;
+        // Retourner en UCI: from + to (+ promotion si applicable)
+        bestMove = move.from + move.to + (move.promotion || '');
       }
     }
 
@@ -131,16 +126,11 @@ export function getFallbackMove(fen: string, depth: number = 3): string | null {
 export function hasSufficientMaterial(fen: string): boolean {
   const chess = new Chess(fen);
   const pieces = chess.board().flat().filter(Boolean);
-
-  // Roi seul
   if (pieces.length <= 2) return false;
-
-  // Roi + fou vs roi, roi + cavalier vs roi
   const nonKing = pieces.filter(p => p && p.type !== 'k');
   if (nonKing.length <= 1) {
     const type = nonKing[0]?.type;
     if (type === 'b' || type === 'n') return false;
   }
-
   return true;
 }
