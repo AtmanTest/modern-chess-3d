@@ -59,10 +59,41 @@ export default function VsAIPage() {
     }
   }, []);
 
+  const [checkSquare, setCheckSquare] = useState<string | null>(null);
+
   const applyMove = useCallback((from: string, to: string, promotion?: string) => {
-    chess.move({ from: from as Square, to: to as Square, promotion: promotion as 'q' | 'r' | 'b' | 'n' | undefined });
+    // Auto-promotion to queen if pawn reaches last rank
+    const piece = chess.get(from as Square);
+    const needsPromo = piece?.type === 'p' && (to[1] === '8' || to[1] === '1');
+    const promo = promotion || (needsPromo ? 'q' : undefined);
+
+    chess.move({
+      from: from as Square,
+      to: to as Square,
+      promotion: promo as 'q' | 'r' | 'b' | 'n' | undefined,
+    });
+
     setFen(chess.fen());
     setLastMove({ from, to });
+
+    // Find king in check
+    const turn = chess.turn();
+    if (chess.isCheck()) {
+      // Find the king's square
+      const board = chess.board();
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const p = board[r][c];
+          if (p && p.type === 'k' && p.color === turn) {
+            setCheckSquare(`${String.fromCharCode(97 + c)}${8 - r}`);
+            break;
+          }
+        }
+      }
+    } else {
+      setCheckSquare(null);
+    }
+
     const hist = chess.history();
     setMoveHistory([...hist]);
     updateGameStatus(chess);
@@ -222,6 +253,7 @@ export default function VsAIPage() {
           selectedSquare={selectedSquare}
           legalMoves={legalMoves}
           lastMove={lastMove}
+          checkSquare={checkSquare}
           flipped={flipped}
         />
       </div>

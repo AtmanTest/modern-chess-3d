@@ -34,8 +34,10 @@ function fenToPositions(fen: string): PiecePosition[] {
         const rank = 7 - row;
         const square = `${String.fromCharCode(97 + file)}${rank + 1}`;
         // Board center is at (0, 0, 0) with squares from -3.5 to 3.5
+        // ChessBoard3D maps board row to z: z = row - 3.5 (row=0=a8, row=7=a1)
+        // FEN row 0 = rank 8 = a8 at z=-3.5 in Board3D
         const x = file - 3.5;
-        const z = rank - 3.5;
+        const z = row - 3.5; // match ChessBoard3D's z-coordinate system
         positions.push({ type, color, square, x, z });
         col++;
       }
